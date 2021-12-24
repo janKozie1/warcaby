@@ -14,6 +14,9 @@ def value(func):
 def identity(arg):
     return arg
 
+def join(func):
+    return func.join()
+
 args_len = flow(getargspec, lambda spec: spec[0], len)
 
 def curry(fn, args = ()):
@@ -30,6 +33,11 @@ def curry(fn, args = ()):
             return curry(fn, applied_args + args)
 
     return wrapper
+
+@curry
+def forEach(fn, iterable):
+    for el in iterable:
+        fn(el)
 
 @curry
 def map(fn, func):

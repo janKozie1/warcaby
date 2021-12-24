@@ -9,5 +9,5 @@ class Array(list):
     return self.map(fn).join()
 
   def join(self):
-    return Array(*[x for x in nested_array for nested_array in self])
+    return Array(*[item for sublist in self for item in sublist])
 
