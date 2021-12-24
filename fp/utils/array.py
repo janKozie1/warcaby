@@ -25,5 +25,18 @@ def withIndex(arr):
 def fillWithIndex(size):
   return withIndex(fill(None, size)).map(flow(head, value))
 
+@curry
+def find(predicate, array):
+  for el in array:
+    if predicate(el):
+      return Maybe.of(el)
+  
+  return Maybe.of(None)
+
+@curry
+def filter(predicate, array):
+  return Array(*[el for el in array if predicate(el)])
+
+
 
 

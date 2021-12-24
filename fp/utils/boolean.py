@@ -10,3 +10,7 @@ def toBool(arg):
 def eq(left, right):
     return left == right
 
+@curry
+def ifElse(onTrue, onFalse, condition): 
+    return lambda arg: onTrue(arg) if condition(arg) else onFalse(arg)
+

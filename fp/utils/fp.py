@@ -46,6 +46,10 @@ def map(fn, func):
 @curry
 def chain(fn, func):
     return func.chain(fn)
+
+@curry
+def apply(funcA, funcB):
+    return funcA.apply(funcB)
         
 
 

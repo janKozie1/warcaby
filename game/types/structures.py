@@ -1,3 +1,5 @@
+import fp
+
 from game.types.utils import typeCreator
 
 PlayerTypename = "Player"
@@ -19,5 +21,21 @@ QueenPawnTypename = "QueenPawn"
 def QueenPawn(pawn):
   return {
     "pawn": pawn
+  }
+
+CoordinatesTypename = "Coordinates"
+@typeCreator(CoordinatesTypename)
+def Coordinates(x, y):
+  return {
+    "x": x,
+    "y": y,
+  }
+
+CellTypename = "Cell"
+@typeCreator(CellTypename)
+def Cell(coordinates, pawn):
+  return {
+    "pawn": pawn,
+    "at": coordinates,
   }
 
