@@ -38,3 +38,20 @@ def Cell(coordinates, pawn):
     "pawn": pawn,
     "at": coordinates,
   }
+
+MoveTypename = "Move"
+@typeCreator(MoveTypename)
+def Move(player, fromCoordinates, toCoordinates):
+  return {
+    "player": player,
+    "from": fromCoordinates,
+    "to": toCoordinates,
+  }
+
+ValidationDependenciesTypename = "ValidationDependencies"
+@typeCreator(ValidationDependenciesTypename)
+def ValidationDependencies(board, keyEncoder):
+  return {
+    "board": board,
+    "keyEncoder": keyEncoder
+  }

@@ -6,6 +6,16 @@ def isNone(arg):
 def toBool(arg):
     return arg != None and arg != 0 and arg != False
 
+def flipBool(arg):
+    return not arg
+
+def negate(fn):
+    return flow(
+        fn,
+        toBool,
+        flipBool,
+    )
+
 @curry
 def eq(left, right):
     return left == right

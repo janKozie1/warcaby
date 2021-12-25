@@ -26,8 +26,6 @@ class Maybe:
   def __str__(self):
     return f"Nothing" if self.__isNothing() else f"Just({self.value})"
 
-
-
   @staticmethod  
   def of(value):
     return Maybe(value)

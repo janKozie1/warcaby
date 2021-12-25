@@ -29,7 +29,6 @@ def polishBoardPlacementRules(playerOne, playerTwo, x, y):
     
   return game.Cell(cellCoordinates, None)
 
-
 @fp.curry
 def placeAt(coordinates, thing, board):
   cellKey = encodeKey(coordinates)
@@ -61,17 +60,22 @@ def printBoard(board):
     fp.forEach(lambda row: print(row.map(cellRepr)))
   )(board)
 
-
 playerOne = game.Player(1)
 playerTwo = game.Player(2)
 
 make10x10Board = createBoard(10, 10)
 polishBoard = make10x10Board(polishBoardPlacementRules(playerOne, playerTwo))
 
-printBoard(move(game.Coordinates(1, 0), game.Coordinates(0, 0), polishBoard))
+printBoard(polishBoard)
 #print(takeAt(game.Coordinates(1, 0), polishBoard))
 #printBoard(polishBoard(movePawn(1, 0, 0, 0, polishBoard)))
 #print(fp.append(1, fp.Array(2)))
 #print(fp.compareProp("a", {"a": 1}, {"b": 2}))
+
+
+print(game.validation.validatePlayerMove(
+  game.ValidationDependencies(polishBoard, encodeKey),
+  game.Move(playerOne, game.Coordinates(1, 0), game.Coordinates(3, 0))
+))
 
 #print(fp.prop("a", {"a": 1}))
