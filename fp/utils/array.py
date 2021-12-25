@@ -1,7 +1,11 @@
+from functools import reduce
+
 from fp.functors import Maybe, Array
 
 from fp.utils.fp import flow, curry, value
 from fp.utils.math import eq
+from fp.utils.object import setProp, prop, has
+from fp.utils.boolean import ifElse
 
 isEmpty = flow(len, eq(0))
 
@@ -12,6 +16,7 @@ def nth(n, arr):
 head = nth(0)
 second = nth(1)
 
+@curry
 def tail(arr):
   return Maybe.of(Array(*arr[1:])) if not isEmpty(arr) else Maybe.of(None)
 
@@ -19,11 +24,17 @@ def tail(arr):
 def fill(thing, size):
   return Array(*[thing for _ in range(0, size)])
 
+@curry
 def withIndex(arr):
   return Array(*[Array(*enum) for enum in enumerate(arr)])
 
+@curry
 def fillWithIndex(size):
   return withIndex(fill(None, size)).map(flow(head, value))
+
+@curry
+def append(el, arr):
+  return Array(*arr, el)
 
 @curry
 def find(predicate, array):
@@ -37,6 +48,16 @@ def find(predicate, array):
 def filter(predicate, array):
   return Array(*[el for el in array if predicate(el)])
 
+@curry
+def groupBy(predicate, array):
+  def reducer(groups, el):
+    dictKey = predicate(el)
+    
+    return setProp(
+      dictKey,
+      value(prop(dictKey, groups).map(append(el))) if has(dictKey, groups) else Array(el),
+      groups 
+    )
 
-
+  return reduce(reducer, array, {})
 

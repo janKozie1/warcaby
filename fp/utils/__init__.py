@@ -3,3 +3,4 @@ from fp.utils.array import *
 from fp.utils.fp import *
 from fp.utils.math import *
 from fp.utils.object import *
+from fp.utils.number import *

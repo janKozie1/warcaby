@@ -17,6 +17,9 @@ def identity(arg):
 def join(func):
     return func.join()
 
+def wrap(val):
+    return lambda *args: val
+
 args_len = flow(getargspec, lambda spec: spec[0], len)
 
 def curry(fn, args = ()):
