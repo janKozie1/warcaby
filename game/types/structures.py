@@ -38,4 +38,3 @@ def Cell(coordinates, pawn):
     "pawn": pawn,
     "at": coordinates,
   }
-

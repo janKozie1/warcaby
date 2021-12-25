@@ -3,19 +3,19 @@ import fp
 import game
 
 @fp.curry
-def keyEncoder(separator, x, y):
-  return f"{x}{separator}{y}" 
+def keyEncoder(separator, coordinates):
+  return f"{coordinates['x']}{separator}{coordinates['y']}" 
 
 @fp.curry
 def keyDecoder(separator, key):
   return fp.Array(*key.split(separator))
 
-encodKey = keyEncoder("-")
+encodeKey = keyEncoder("-")
 decodeKey = keyDecoder("-")
 
 @fp.curry
 def createBoard(width, height, mapping_fn):
-  return {encodKey(x, y): mapping_fn(x, y) for y in range(0, height) for x in range(0, width)}
+  return { encodeKey(game.Coordinates(x, y)): mapping_fn(x, y) for y in range(0, height) for x in range(0, width) }
 
 @fp.curry
 def polishBoardPlacementRules(playerOne, playerTwo, x, y):
@@ -29,11 +29,22 @@ def polishBoardPlacementRules(playerOne, playerTwo, x, y):
     
   return game.Cell(cellCoordinates, None)
 
-playerOne = game.Player(1)
-playerTwo = game.Player(2)
 
-make10x10Board = createBoard(10, 10)
-polishBoard = make10x10Board(polishBoardPlacementRules(playerOne, playerTwo))
+@fp.curry
+def placeAt(coordinates, thing, board):
+  cellKey = encodeKey(coordinates)
+  return fp.setProp(cellKey, fp.value(fp.prop(cellKey, board).map(fp.setProp("pawn", thing))), board)
+
+@fp.curry
+def takeAt(coordinates, board):
+  return fp.value(fp.prop(encodeKey(coordinates), board).chain(fp.prop("pawn")))
+
+@fp.curry
+def move(coordinatesFrom, coordinatesTo, board):
+  return fp.flow(
+    placeAt(coordinatesTo, takeAt(coordinatesFrom, board)),
+    placeAt(coordinatesFrom, None)
+  )(board)
 
 def cellRepr(cell):
   if cell["pawn"] is None:
@@ -51,7 +62,14 @@ def printBoard(board):
   )(board)
 
 
-printBoard(polishBoard)
+playerOne = game.Player(1)
+playerTwo = game.Player(2)
+
+make10x10Board = createBoard(10, 10)
+polishBoard = make10x10Board(polishBoardPlacementRules(playerOne, playerTwo))
+
+printBoard(move(game.Coordinates(1, 0), game.Coordinates(0, 0), polishBoard))
+#print(takeAt(game.Coordinates(1, 0), polishBoard))
 #printBoard(polishBoard(movePawn(1, 0, 0, 0, polishBoard)))
 #print(fp.append(1, fp.Array(2)))
 #print(fp.compareProp("a", {"a": 1}, {"b": 2}))
