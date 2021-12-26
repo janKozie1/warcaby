@@ -5,7 +5,6 @@ from fp.functors import Maybe, Array
 from fp.utils.fp import flow, curry, value
 from fp.utils.math import eq
 from fp.utils.object import setProp, prop, has
-from fp.utils.boolean import ifElse
 
 isEmpty = flow(len, eq(0))
 
@@ -61,3 +60,14 @@ def groupBy(predicate, array):
 
   return reduce(reducer, array, {})
 
+@curry
+def sort(predicate, array):
+  cp = array.copy()
+  cp.sort(key = predicate)
+
+  return cp
+
+
+@curry
+def some(predicate, array):
+  return len(filter(predicate, array)) != 0

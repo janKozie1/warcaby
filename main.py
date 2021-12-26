@@ -75,7 +75,7 @@ printBoard(polishBoard)
 
 print(game.validation.validatePlayerMove(
   game.ValidationDependencies(polishBoard, encodeKey),
-  game.Move(playerOne, game.Coordinates(1, 0), game.Coordinates(3, 0))
+  game.Move(playerOne, game.Coordinates(0, 3), game.Coordinates(1, 4))
 ))
 
 #print(fp.prop("a", {"a": 1}))

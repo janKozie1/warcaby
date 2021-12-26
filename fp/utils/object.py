@@ -1,4 +1,4 @@
-from fp.utils.fp import curry, flow, map
+from fp.utils.fp import curry, flow, map, value
 from fp.utils.boolean import eq
 from fp.functors import Maybe, Array
 
@@ -31,7 +31,7 @@ def keys(dictA):
 
 @curry
 def compareProp(propKey, dictA, dictB):
-  return prop(propKey, dictA).chain(flow(
-    eq,
-    map(prop(propKey, dictB))
-  )).value()
+  return value(prop(propKey, dictA).chain(lambda propValue: flow(
+    prop(propKey),
+    map(eq(propValue))
+  )(dictB)))

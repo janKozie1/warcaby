@@ -53,5 +53,5 @@ ValidationDependenciesTypename = "ValidationDependencies"
 def ValidationDependencies(board, keyEncoder):
   return {
     "board": board,
-    "keyEncoder": keyEncoder
+    "keyEncoder": keyEncoder,
   }
