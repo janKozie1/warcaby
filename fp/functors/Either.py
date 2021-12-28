@@ -20,6 +20,9 @@ class Right:
   def chain(self, fn):
     return self.map(fn).join()
 
+  def __bool__(self):
+    return True
+  
   def __repr__(self):
     return f"Right({self.value})"
 
@@ -51,6 +54,9 @@ class Left:
   
   def ap(self, func):
     return self
+
+  def __bool__(self):
+    return False
 
   def __repr__(self):
     return f"Left({self.value})"

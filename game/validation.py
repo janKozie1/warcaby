@@ -11,6 +11,10 @@ def moveValidator(errorMsg):
     return wrapper
   return decorator
 
+def either(conditionA, conditionB):
+  # TODO: join the errors
+  return lambda move: conditionA(move) or conditionB(move)
+
 @fp.curry
 def getCell(cell, dependencies, move):
   return fp.prop(dependencies["keyEncoder"](move[cell]), dependencies["board"])
@@ -82,7 +86,24 @@ def doesNotJumpOverSelf(dependencies, mv):
     fp.flipBool   
   ))
 
-def orValidation(conditionA, conditionB):
+@fp.curry
+@moveValidator("Cannot move by more than one cell")
+def movesByOneCell(dependencies, mv):
+  return mv.map(lambda move: abs(move["from"]["x"] - move["to"]["x"]) == 1 and abs(move["from"]["y"] - move["to"]["y"]) == 1)
+
+@fp.curry
+@moveValidator("Pawn has to move forward")
+def movesForward(dependencies, mv):
+  pass
+
+@fp.curry
+@moveValidator("Has to end move after other's player pawn")
+def landsAfterEnemyPawn(dependencies, mv):
+  pass
+
+@fp.curry
+@moveValidator("Cannot jump over more than 1 enemy pawn")
+def jumpsOverOneEnemyPawn(dependencies, mv):
   pass
 
 @fp.curry
@@ -94,5 +115,9 @@ def validatePlayerMove(dependencies, move):
     movesToEmptySpace(dependencies),
     userOwnsPawn(dependencies),
     movesDiagonally(dependencies),
-    doesNotJumpOverSelf(dependencies)
+    doesNotJumpOverSelf(dependencies),
+    either(
+      fp.flow(jumpsOverOneEnemyPawn(dependencies), landsAfterEnemyPawn(dependencies)),
+      fp.flow(movesByOneCell(dependencies), movesForward(dependencies))
+    )
   )(fp.Right.of(move))
