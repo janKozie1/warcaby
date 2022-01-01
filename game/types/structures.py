@@ -20,9 +20,7 @@ def Pawn(owner):
 QueenPawnTypename = "QueenPawn"
 @typeCreator(QueenPawnTypename)
 def QueenPawn(pawn):
-  return {
-    "pawn": pawn
-  }
+  return { **pawn }
 
 CoordinatesTypename = "Coordinates"
 @typeCreator(CoordinatesTypename)
@@ -42,17 +40,18 @@ def Cell(coordinates, pawn):
 
 MoveTypename = "Move"
 @typeCreator(MoveTypename)
-def Move(player, fromCoordinates, toCoordinates):
+def Move(player, board, fromCoordinates, toCoordinates):
   return {
     "player": player,
     "from": fromCoordinates,
     "to": toCoordinates,
+    "board": board,
   }
 
-ValidationDependenciesTypename = "ValidationDependencies"
-@typeCreator(ValidationDependenciesTypename)
-def ValidationDependencies(board, keyEncoder):
+MoveDependenciesTypename = "MoveDependencies"
+@typeCreator(MoveDependenciesTypename)
+def MoveDependencies(keyEncoder, keyDecoder):
   return {
-    "board": board,
     "keyEncoder": keyEncoder,
+    "keyDecoder": keyDecoder,
   }

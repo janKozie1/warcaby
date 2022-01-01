@@ -1,4 +1,6 @@
-from fp.utils.fp import curry, flow, map, value
+from functools import reduce
+
+from fp.utils.fp import curry, flow, forEach, map, value, forEach
 from fp.utils.boolean import eq
 from fp.functors import Maybe, Array
 
@@ -35,3 +37,18 @@ def compareProp(propKey, dictA, dictB):
     prop(propKey),
     map(eq(propValue))
   )(dictB)))
+
+@curry
+def mapDict(mappingFn, dictA):
+  return flow(
+    keys,
+    map(lambda key: { key: mappingFn(value(prop(key, dictA)), key) }),
+    lambda cells: reduce(merge, cells, {})
+  )(dictA)
+
+@curry
+def forEachDict(fn, dictA): 
+  return flow(
+    keys,
+    forEach(lambda key: fn(value(prop(key, dictA)), key))
+  )(dictA)

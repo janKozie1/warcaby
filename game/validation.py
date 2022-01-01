@@ -24,11 +24,11 @@ def either(conditionA, conditionB):
       return resultB
 
     return fp.Left(f"{resultA.value} or {resultB.value}")
-  return handleMove
+  return lambda mv: mv.chain(lambda _: handleMove(mv))
   
 @fp.curry
 def getCell(cell, dependencies, move):
-  return fp.prop(dependencies["keyEncoder"](move[cell]), dependencies["board"])
+  return fp.prop(dependencies["keyEncoder"](move[cell]), move["board"])
 
 getFromCell = getCell("from")
 getToCell = getCell("to")
@@ -36,7 +36,7 @@ getToCell = getCell("to")
 @fp.curry
 def getCellsInBetween(dependencies, move):
   return fp.filter(fp.negate(fp.isNone), getCoordinatesInBetween(move["from"], move["to"]).map(fp.flow(
-    lambda coords: fp.prop(dependencies["keyEncoder"](coords), dependencies["board"]),
+    lambda coords: fp.prop(dependencies["keyEncoder"](coords), move["board"]),
     fp.value
   )))
 
@@ -141,11 +141,11 @@ movesByTwoCells = fp.flow(
 @fp.curry
 def validatePlayerMove(dependencies, move): 
   return fp.flow(
+    pawnExists(dependencies),
+    userOwnsPawn(dependencies),
     movesWithinBoard(dependencies),
     movesToOtherCell(dependencies),
-    pawnExists(dependencies),
     movesToEmptySpace(dependencies),
-    userOwnsPawn(dependencies),
     movesDiagonally(dependencies),
     doesNotJumpOverSelf(dependencies),
     either(
