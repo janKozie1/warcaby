@@ -15,6 +15,15 @@ def getCoordinatesInBetween(fromCoords, toCoords):
 
   return fp.fillWithIndex(abs(fromCoords["x"] - toCoords["x"]) - 1).map(fp.flow(fp.add(1), createCoords))
 
+@fp.curry
+def getCoordinatesWithDestroyablePawns(board, player, coordinates):
+  pass
+
+@fp.curry
+def getPossibleMoves(board, player, coordinates):
+  pass
 
 isQueen = isTypeOf(QueenPawnTypename)
 isPawn = isTypeOf(PawnTypename)
+
+

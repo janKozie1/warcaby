@@ -23,13 +23,17 @@ def move(dependencies, board, coordinatesFrom, coordinatesTo):
 
 @fp.curry
 def processMove(dependencies, playerMove):
-  return move(
-    dependencies,
-    reduce(
-      placeAt(dependencies, None), 
-      getCoordinatesInBetween(playerMove["from"], playerMove["to"]),
-      playerMove["board"],
+  return dependencies["resultCreator"](
+    move(
+      dependencies,
+      reduce(
+        placeAt(dependencies, None), 
+        getCoordinatesInBetween(playerMove["from"], playerMove["to"]),
+        playerMove["board"],
+      ),
+      playerMove["from"],
+      playerMove["to"],
     ),
-    playerMove["from"],
-    playerMove["to"],
+    True,
+    None
   )

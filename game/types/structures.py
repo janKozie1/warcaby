@@ -50,8 +50,18 @@ def Move(player, board, fromCoordinates, toCoordinates):
 
 MoveDependenciesTypename = "MoveDependencies"
 @typeCreator(MoveDependenciesTypename)
-def MoveDependencies(keyEncoder, keyDecoder):
+def MoveDependencies(keyEncoder, keyDecoder, resultCreator):
   return {
     "keyEncoder": keyEncoder,
     "keyDecoder": keyDecoder,
+    "resultCreator": resultCreator,
+  }
+
+MoveResultTypename = "MoveResult"
+@typeCreator(MoveResultTypename)
+def MoveResult(board, shouldSwitchPlayers, winner):
+  return {
+    "board": board,
+    "shouldSwitchPlayers": shouldSwitchPlayers,
+    "winner": winner
   }

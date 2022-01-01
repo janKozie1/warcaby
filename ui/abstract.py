@@ -7,7 +7,7 @@ class UI(ABC):
     pass
 
   @abstractmethod
-  def makeMove(self, coordinates):
+  def makeMove(self):
     pass
 
 

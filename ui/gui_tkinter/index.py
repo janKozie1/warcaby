@@ -23,7 +23,7 @@ class TkinterGUI(UI):
     self.__init_players()
     self.__init_board(getBoard)
 
-    self.deps = game.MoveDependencies(game.encodeKey, game.decodeKey)
+    self.deps = game.MoveDependencies(game.encodeKey, game.decodeKey, game.MoveResult)
     self.validate = game.validatePlayerMove(self.deps)
     self.processMove = game.processMove(self.deps)
     self.error = None
@@ -43,7 +43,7 @@ class TkinterGUI(UI):
     self.playerOne = game.Player(1, 1)
     self.playerTwo = game.Player(2, -1)
 
-    self.activePlayer = self.playerOne
+    self.activePlayer = self.playerTwo
     
   def __init_board(self, getBoard):
     self.board = getBoard(self.playerOne, self.playerTwo)
@@ -115,6 +115,7 @@ class TkinterGUI(UI):
   @withRerender
   def cellClickHandler(self, cell):
     self.error = None
+  
     if fp.isNone(self.selectedCell):
       if not fp.isNone(cell["pawn"]):
         self.selectedCell = cell
@@ -124,9 +125,11 @@ class TkinterGUI(UI):
       result = self.makeMove(cell)
   
       if result.isRight():
-        self.board = result.value
+        self.board = result.value["board"]
         self.selectedCell = None
-        self.__swap_active_oplayer()
+
+        if (result.value["shouldSwitchPlayers"]):
+          self.__swap_active_oplayer()
       else:
         self.error = result.value
 
@@ -136,5 +139,5 @@ class TkinterGUI(UI):
       lambda strVar, key: strVar.set(self.__cell_repr(self.board[key])
     ), self.board_repr)
 
-    self.errorVar.set("" if fp.isNone(self.error) else f"Error: {self.error}")
+    self.errorVar.set("" if fp.isNone(self.error) else f"Ruch niedozwolony: {self.error}")
     self.activePlayerVar.set(f"Tura gracza: {self.__player_repr(self.activePlayer)}")
