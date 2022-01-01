@@ -12,9 +12,20 @@ def moveValidator(errorMsg):
   return decorator
 
 def either(conditionA, conditionB):
-  # TODO: join the errors
-  return lambda move: conditionA(move) or conditionB(move)
+  def handleMove(move): 
+    resultA = conditionA(move)
 
+    if resultA:
+      return resultA
+
+    resultB = conditionB(move)
+
+    if resultB:
+      return resultB
+
+    return fp.Left(f"{resultA.value} or {resultB.value}")
+  return handleMove
+  
 @fp.curry
 def getCell(cell, dependencies, move):
   return fp.prop(dependencies["keyEncoder"](move[cell]), dependencies["board"])
@@ -38,14 +49,28 @@ def cellHasOwner(owner, cell):
       fp.chain(fp.compareProp("id", owner)),
     )),
   )(cell)
+
+@fp.curry
+def cellHasEnemyPawn(player, cell):
+  return fp.flow(
+    fp.prop("pawn"),
+    fp.chain(fp.flow(
+      fp.prop("owner"),
+      fp.chain(lambda owner: not fp.isNone(owner) and not fp.compareProp("id", owner, player)),
+    )),
+  )(cell)
+
+@fp.curry
+def movesBy(distance, dependencies, mv):
+  return mv.map(lambda move: abs(move["from"]["x"] - move["to"]["x"]) == distance and abs(move["from"]["y"] - move["to"]["y"]) == distance)
   
 @fp.curry
-@moveValidator("Move is not within the board")
+@moveValidator("has to end be within the board")
 def movesWithinBoard(dependencies, mv):
   return mv.map(lambda move: getFromCell(dependencies, move) and getToCell(dependencies, move))
 
 @fp.curry
-@moveValidator("Start and end coordinates have to be different")
+@moveValidator("has to have different start and end coordinates")
 def movesToOtherCell(dependencies, mv):
   return mv.map(lambda move: getFromCell(dependencies, move).chain(fp.flow(
     lambda cell: getToCell(dependencies, move).map(fp.flow(fp.eq(cell), fp.flipBool)),
@@ -53,7 +78,7 @@ def movesToOtherCell(dependencies, mv):
   )))
 
 @fp.curry
-@moveValidator("No pawn to move")
+@moveValidator("has to move a pawn")
 def pawnExists(dependencies, mv):
   return mv.map(lambda move: getFromCell(dependencies, move).chain(fp.flow(
     fp.prop("pawn"),
@@ -61,7 +86,7 @@ def pawnExists(dependencies, mv):
   )))
 
 @fp.curry
-@moveValidator("Target tile is not empty")
+@moveValidator("has to end on an empty tile")
 def movesToEmptySpace(dependencies, mv):
   return mv.map(lambda move: getToCell(dependencies, move).chain(fp.flow(
     fp.prop("pawn"),
@@ -69,17 +94,17 @@ def movesToEmptySpace(dependencies, mv):
   )))
 
 @fp.curry
-@moveValidator("Pawn does not belong to the current user")
+@moveValidator("has to move pawn owned by the player")
 def userOwnsPawn(dependencies, mv):
   return mv.map(lambda move: getFromCell(dependencies, move).chain(cellHasOwner(move["player"])))
 
 @fp.curry
-@moveValidator("Pawn is not being moved diagonally")
+@moveValidator("has to move pawn diagonally")
 def movesDiagonally(dependencies, mv):
   return mv.map(lambda move: abs(move["from"]["x"] - move["to"]["x"]) == abs(move["from"]["y"] - move["to"]["y"]))
 
 @fp.curry
-@moveValidator("Cannot jump over pawns of the same user")
+@moveValidator("has to not jump over own pawns")
 def doesNotJumpOverSelf(dependencies, mv):
   return mv.map(fp.flow(
     lambda move: fp.some(cellHasOwner(move["player"]), getCellsInBetween(dependencies, move)),
@@ -87,24 +112,31 @@ def doesNotJumpOverSelf(dependencies, mv):
   ))
 
 @fp.curry
-@moveValidator("Cannot move by more than one cell")
-def movesByOneCell(dependencies, mv):
-  return mv.map(lambda move: abs(move["from"]["x"] - move["to"]["x"]) == 1 and abs(move["from"]["y"] - move["to"]["y"]) == 1)
-
-@fp.curry
-@moveValidator("Pawn has to move forward")
+@moveValidator("has to move forward")
 def movesForward(dependencies, mv):
-  pass
+  return mv.map(lambda move: (move["to"]["y"] - move["from"]["y"]) * move["player"]["direction"] > 0)
 
 @fp.curry
-@moveValidator("Has to end move after other's player pawn")
+@moveValidator("has to land after enemy's pawn")
 def landsAfterEnemyPawn(dependencies, mv):
-  pass
+  return mv.map(lambda move: fp.last(getCellsInBetween(dependencies, move)).chain(
+    cellHasEnemyPawn(move["player"])
+  ))
 
 @fp.curry
-@moveValidator("Cannot jump over more than 1 enemy pawn")
+@moveValidator("has to jump over at most 1 enemy pawn")
 def jumpsOverOneEnemyPawn(dependencies, mv):
-  pass
+  return mv.map(lambda move: len(fp.filter(cellHasEnemyPawn(move["player"]), getCellsInBetween(dependencies, move))) == 1)
+
+movesByOneCell = fp.flow(
+  moveValidator("has to move by one cell"),
+  fp.curry
+)(movesBy(1))
+
+movesByTwoCells = fp.flow(
+  moveValidator("has to move by three cells"),
+  fp.curry
+)(movesBy(2))
 
 @fp.curry
 def validatePlayerMove(dependencies, move): 
@@ -117,7 +149,7 @@ def validatePlayerMove(dependencies, move):
     movesDiagonally(dependencies),
     doesNotJumpOverSelf(dependencies),
     either(
-      fp.flow(jumpsOverOneEnemyPawn(dependencies), landsAfterEnemyPawn(dependencies)),
-      fp.flow(movesByOneCell(dependencies), movesForward(dependencies))
+      fp.flow(landsAfterEnemyPawn(dependencies), jumpsOverOneEnemyPawn(dependencies), movesByTwoCells(dependencies)),
+      fp.flow(movesForward(dependencies), movesByOneCell(dependencies))
     )
   )(fp.Right.of(move))

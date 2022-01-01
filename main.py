@@ -60,22 +60,16 @@ def printBoard(board):
     fp.forEach(lambda row: print(row.map(cellRepr)))
   )(board)
 
-playerOne = game.Player(1)
-playerTwo = game.Player(2)
+playerOne = game.Player(1, 1)
+playerTwo = game.Player(2, -1)
 
 make10x10Board = createBoard(10, 10)
 polishBoard = make10x10Board(polishBoardPlacementRules(playerOne, playerTwo))
 
-printBoard(polishBoard)
-#print(takeAt(game.Coordinates(1, 0), polishBoard))
-#printBoard(polishBoard(movePawn(1, 0, 0, 0, polishBoard)))
-#print(fp.append(1, fp.Array(2)))
-#print(fp.compareProp("a", {"a": 1}, {"b": 2}))
-
+board = polishBoard
+printBoard(board)
 
 print(game.validation.validatePlayerMove(
-  game.ValidationDependencies(polishBoard, encodeKey),
-  game.Move(playerOne, game.Coordinates(0, 3), game.Coordinates(1, 4))
+  game.ValidationDependencies(board, encodeKey),
+  game.Move(playerTwo, game.Coordinates(3, 6), game.Coordinates(5, 4))
 ))
-
-#print(fp.prop("a", {"a": 1}))

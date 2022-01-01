@@ -20,6 +20,10 @@ def tail(arr):
   return Maybe.of(Array(*arr[1:])) if not isEmpty(arr) else Maybe.of(None)
 
 @curry
+def last(arr):
+  return Maybe.of(arr[-1]) if not isEmpty(arr) else Maybe.of(None)
+
+@curry
 def fill(thing, size):
   return Array(*[thing for _ in range(0, size)])
 

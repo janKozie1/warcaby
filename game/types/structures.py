@@ -4,9 +4,10 @@ from game.types.utils import typeCreator
 
 PlayerTypename = "Player"
 @typeCreator(PlayerTypename)
-def Player(id):
+def Player(id, direction):
   return {
-    "id": id
+    "id": id,
+    "direction": direction,
   }
 
 PawnTypename = "Pawn"
