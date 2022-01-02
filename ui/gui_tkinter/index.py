@@ -1,8 +1,9 @@
 from tkinter import *
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from functools import wraps
 
 import fp
+from fp.utils.object import compareProp
 import game
 
 from ui.abstract import UI
@@ -19,9 +20,11 @@ def withRerender(method):
 
 class TkinterGUI(UI):
   def __init__(self, getBoard):
+    self.getBoard = getBoard
+
     self.__init_frame()
     self.__init_players()
-    self.__init_board(getBoard)
+    self.__init_board()
 
     self.deps = game.MoveDependencies(game.encodeKey, game.decodeKey, game.MoveResult)
     self.validate = game.validatePlayerMove(self.deps)
@@ -44,22 +47,26 @@ class TkinterGUI(UI):
     self.playerTwo = game.Player(2, game.Directions()["up"])
 
     self.activePlayer = self.playerTwo
+    self.winner = None
 
-  def __init_board(self, getBoard):
-    self.board = getBoard(self.playerOne, self.playerTwo)
-    self.board_repr = fp.mapDict(lambda _, key: StringVar(), self.board)
+  def __init_board(self):
+    self.board = self.getBoard(self.playerOne, self.playerTwo)
+    self.board_repr = fp.mapDict(lambda _, __: StringVar(), self.board)
 
     self.selectedCell = None
     self.needsToContinueMoveFrom = None
 
   def __init_ui(self):
     self.errorVar = StringVar(value = self.error)
-    self.activePlayerVar = StringVar(value = self.__player_repr(self.activePlayer))
+    self.playerVar = StringVar(value = self.__player_repr(self.activePlayer))
+
+    boardWidth = game.getBoardWidth(self.board)
+    boardHeight = game.getBoardHeight(self.board)
 
     Label(
       self.window,
-      textvariable = self.activePlayerVar
-    ).grid(column = 0, row = 0, columnspan = 9)
+      textvariable = self.playerVar
+    ).grid(column = 0, row = 0, columnspan = boardWidth)
 
     fp.forEachDict(lambda cell, key: Button(
       self.window,
@@ -72,7 +79,19 @@ class TkinterGUI(UI):
     Label(
       self.window,
       textvariable = self.errorVar
-    ).grid(column = 0, row = 11, columnspan=9)
+    ).grid(column = 0, row = boardHeight + 2, columnspan = boardWidth)
+
+    #padding
+    Label(
+      self.window,
+      text = ""
+    ).grid(column = 0, row = boardHeight + 3, columnspan = boardWidth)
+
+    Button(
+      self.window,
+      text="Reset",
+      command = self.resetButtonClickHandler,
+    ).grid(column = 0, row = boardHeight + 4, columnspan = boardWidth)
 
   def __cell_repr(self, cell):
     def pawn(str):
@@ -87,13 +106,12 @@ class TkinterGUI(UI):
       return ""
 
     def color(str):
-      if game.cellHasOwner(self.playerOne, cell):
-        return f"C{str}"
+      pawn = cell["pawn"]
 
-      if game.cellHasOwner(self.playerTwo, cell):
-        return f"B{str}"
+      if fp.isNone(pawn):
+        return str
 
-      return ""
+      return f"{self.__player_repr(pawn['owner'])}{str}"
 
     def selection(str):
       if cell == self.selectedCell:
@@ -103,10 +121,28 @@ class TkinterGUI(UI):
     return fp.flow(pawn, color, selection)("")
 
   def __player_repr(self, player):
-    return f'{player["id"]}'
+    if compareProp("id", player, self.playerOne):
+      return "C"
+
+    if compareProp("id", player, self.playerTwo):
+      return "B"
+
+    return None
 
   def __swap_active_oplayer(self):
     self.activePlayer = self.playerOne if self.activePlayer == self.playerTwo else self.playerTwo
+
+  def __get_winner_text(self):
+    if fp.isNone(self.winner):
+      return None
+
+    if fp.isNone(self.winner["player"]):
+      return "Game end: Draw"
+    else:
+      return f"Game end: player {self.__player_repr(self.winner['player'])} won"
+
+  def __snapshot(self):
+    print(self.board)
 
   def makeMove(self, otherCell):
     return fp.flow(self.validate, fp.map(self.processMove))(
@@ -114,8 +150,22 @@ class TkinterGUI(UI):
     )
 
   @withRerender
+  def resetButtonClickHandler(self):
+    self.activePlayer = self.playerTwo
+    self.winner = None
+
+    self.board = self.getBoard(self.playerOne, self.playerTwo)
+
+    self.selectedCell = None
+    self.needsToContinueMoveFrom = None
+    self.error = None
+
+  @withRerender
   def cellClickHandler(self, cell):
     self.error = None
+
+    if not fp.isNone(self.winner):
+      return
 
     if fp.isNone(self.selectedCell):
       if not fp.isNone(cell["pawn"]):
@@ -127,8 +177,12 @@ class TkinterGUI(UI):
 
       if result.isRight():
         self.board = result.value["board"]
+        self.winner = result.value["winner"]
         self.selectedCell = None
         self.needsToContinueMoveFrom = result.value["needsToContinueMoveFrom"]
+
+        if not fp.isNone(self.winner):
+          messagebox.showinfo(title = "Game end", message = self.__get_winner_text())
 
         if not fp.isNone(self.needsToContinueMoveFrom):
           self.selectedCell = self.board[self.deps["keyEncoder"](self.needsToContinueMoveFrom)]
@@ -142,5 +196,9 @@ class TkinterGUI(UI):
       lambda strVar, key: strVar.set(self.__cell_repr(self.board[key])
     ), self.board_repr)
 
-    self.errorVar.set("" if fp.isNone(self.error) else f"Ruch niedozwolony: {self.error}")
-    self.activePlayerVar.set(f"Tura gracza: {self.__player_repr(self.activePlayer)}")
+    self.errorVar.set("" if fp.isNone(self.error) else f"Invalid move: {self.error}")
+
+    if fp.isNone(self.winner):
+      self.playerVar.set(f"Player's turn: {self.__player_repr(self.activePlayer)}")
+    else:
+      self.playerVar.set(self.__get_winner_text())

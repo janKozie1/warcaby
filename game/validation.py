@@ -181,7 +181,7 @@ movesByOneCell = fp.flow(
 )(movesBy(1))
 
 movesByTwoCells = fp.flow(
-  moveValidator("has to move by three cells"),
+  moveValidator("has to move by two cells"),
   fp.curry
 )(movesBy(2))
 
@@ -219,11 +219,19 @@ def pawnValidation(dependencies):
   )
 
 @fp.curry
+def validate(dependencies, mv):
+  validatingFn = fp.flow(
+    fp.map(lambda move: (queenValidation if hasQueen(move["board"], dependencies["keyEncoder"](move["from"])) else pawnValidation)(dependencies)),
+    fp.value
+  )(mv)
+
+  return validatingFn(mv)
+
+@fp.curry
 def validatePlayerMove(dependencies, move):
-  validate = queenValidation if hasQueen(move["board"], dependencies["keyEncoder"](move["from"])) else pawnValidation
   jumpsOverAvailableEnemyPawn = makeJumpsOverAvailableEnemyPawn(validate(dependencies))
 
   return fp.flow(
     validate(dependencies),
-    jumpsOverAvailableEnemyPawn(dependencies)
+    jumpsOverAvailableEnemyPawn(dependencies),
   )(fp.Right.of(move))

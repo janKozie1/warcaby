@@ -1,7 +1,9 @@
 import fp
 from functools import reduce
+from game.board import getBoardHeight
+from game.types.structures import Directions, QueenPawn
 
-from game.utils import getCoordinatesInBetween, pawnWasRemoved, getPossibleMovesWithDestroyablePawns, flattenPossibleMoves
+from game.utils import determineWinner, getCoordinatesInBetween, pawnWasRemoved, getPossibleMovesWithDestroyablePawns, flattenPossibleMoves
 
 @fp.curry
 def placeAt(dependencies, thing, board, coordinates):
@@ -22,6 +24,20 @@ def move(dependencies, board, coordinatesFrom, coordinatesTo):
   )
 
 @fp.curry
+def shouldTurnIntoQueen(playerMove, board):
+  if playerMove["to"]["y"] == 0 and playerMove["player"]["direction"] == Directions()["up"]:
+    return True
+
+  if playerMove["to"]["y"] == (getBoardHeight(board) - 1) and playerMove["player"]["direction"] == Directions()["down"]:
+    return True
+
+  return False
+
+@fp.curry
+def turnIntoQueen(dependencies, playerMove, board):
+  return placeAt(dependencies, QueenPawn(takeAt(dependencies, board, playerMove["to"])), board, playerMove["to"])
+
+@fp.curry
 def processMove(dependencies, validate, playerMove):
   updatedBoard = move(
     dependencies,
@@ -34,13 +50,15 @@ def processMove(dependencies, validate, playerMove):
     playerMove["to"],
   )
 
-  canJumpOverMore = lambda: fp.flow(
+  needsToContinueMove = pawnWasRemoved(playerMove["board"], updatedBoard) and fp.flow(
     flattenPossibleMoves,
     fp.some(fp.negate(fp.isEmpty))
   )(getPossibleMovesWithDestroyablePawns(dependencies, validate, updatedBoard, playerMove["player"], playerMove["to"]))
 
+  boardWithQueens = turnIntoQueen(dependencies, playerMove, updatedBoard) if not needsToContinueMove and shouldTurnIntoQueen(playerMove, updatedBoard) else updatedBoard
+
   return dependencies["resultCreator"](
-    updatedBoard,
-    playerMove["to"] if pawnWasRemoved(playerMove["board"], updatedBoard) and canJumpOverMore() else None,
-    None
+    boardWithQueens,
+    playerMove["to"] if needsToContinueMove else None,
+    determineWinner(dependencies, validate, boardWithQueens)
   )

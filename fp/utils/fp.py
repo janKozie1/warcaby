@@ -1,7 +1,3 @@
-#  export const curry = (fn) => (...args) => isLess(args.length)(fn.length)
-#   ? curry(bind(...args)(fn))
-#   : call(...args)(fn)
-
 from inspect import getargspec
 from functools import reduce, wraps
 
@@ -53,6 +49,3 @@ def chain(fn, func):
 @curry
 def apply(funcA, funcB):
     return funcA.apply(funcB)
-        
-
-

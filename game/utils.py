@@ -81,12 +81,15 @@ def pawnWasRemoved(previousBoard, board):
 
 @fp.curry
 def determineWinner(dependencies, validate, board):
-  [firstPlayerCells, secondPlayerCells] = fp.flow(
+  cellGroups = fp.flow(
     fp.values,
     fp.filter(fp.flow(fp.prop("pawn"), fp.map(fp.negate(fp.isNone)), fp.value)),
     fp.groupBy(lambda cellWithPawn: cellWithPawn["pawn"]["owner"]["id"]),
     fp.values
   )(board)
+
+  firstPlayerCells = fp.value(fp.head(cellGroups)) or []
+  secondPlayerCells = fp.value(fp.second(cellGroups)) or []
 
   def anyCellHasMoves(hasMoves, cell):
     return hasMoves or len(getPossibleMoves(
@@ -100,9 +103,11 @@ def determineWinner(dependencies, validate, board):
     return None
 
   if firstPlayerHasAvailableMoves and not secondPlayerHasAvailableMoves:
+    print(firstPlayerCells[0]["pawn"]["owner"])
     return Winner(firstPlayerCells[0]["pawn"]["owner"])
 
   if not firstPlayerHasAvailableMoves and secondPlayerHasAvailableMoves:
+    print(secondPlayerCells[0]["pawn"]["owner"])
     return Winner(secondPlayerCells[0]["pawn"]["owner"])
 
   return Winner(None)
