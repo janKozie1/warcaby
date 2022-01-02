@@ -1,3 +1,5 @@
+from functools import reduce
+
 import fp
 from game.types import Coordinates, Cell, Pawn
 
@@ -31,3 +33,11 @@ def englishBoardPlacementRules(playerOne, playerTwo, x, y):
       return Cell(cellCoordinates, Pawn(playerTwo))
     
   return Cell(cellCoordinates, None)
+
+@fp.curry
+def getBoardHeight(board):
+  return reduce(lambda height, cell: height if cell["at"]["y"] < height else cell["at"]["y"], fp.values(board), 0)
+
+@fp.curry
+def getBoardWidth(board):
+  return reduce(lambda width, cell: width if cell["at"]["x"] < width else cell["at"]["x"], fp.values(board), 0)

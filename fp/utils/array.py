@@ -71,7 +71,10 @@ def sort(predicate, array):
 
   return cp
 
-
 @curry
 def some(predicate, array):
   return len(filter(predicate, array)) != 0
+
+@curry
+def every(predicate, array):
+  return len(filter(predicate, array)) == len(array)

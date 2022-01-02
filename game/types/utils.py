@@ -4,7 +4,7 @@ from functools import wraps
 @fp.curry
 def makeTypeCreator(typenameKey, typename):
   def decorator(fn):
-    
+
     @wraps(fn)
     def wrapper(*args):
       return fp.merge(fp.setProp(typenameKey, typename, {}), fn(*args))
@@ -19,7 +19,6 @@ def makeIsTypeOf(typenameKey, typename, obj):
     fp.map(fp.eq(typename)),
     fp.value
   )(obj)
-
 
 typeCreator = makeTypeCreator("__typename")
 isTypeOf = makeIsTypeOf("__typename")

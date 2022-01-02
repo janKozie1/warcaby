@@ -1,7 +1,8 @@
 from functools import reduce
 
 import fp
-from game.types import Coordinates, PossibleMoves, Move, QueenPawnTypename, PawnTypename, isTypeOf
+from game.types import Coordinates, PossibleMoves, Move, Winner, QueenPawnTypename, PawnTypename, isTypeOf
+from game.board import getBoardWidth, getBoardHeight
 
 isQueen = isTypeOf(QueenPawnTypename)
 isPawn = isTypeOf(PawnTypename)
@@ -25,17 +26,9 @@ def hasQueen(board, coordinates):
   return fp.value(fp.prop(coordinates, board).chain(fp.prop("pawn")).map(isQueen))
 
 @fp.curry
-def getBoardHeight(board):
-  return reduce(lambda height, cell: height if cell["at"]["y"] < height else cell["at"]["y"], fp.values(board), 0)
-
-@fp.curry
-def getBoardWidth(board):
-  return reduce(lambda width, cell: width if cell["at"]["x"] < width else cell["at"]["x"], fp.values(board), 0)
-
-@fp.curry
 def getPossibleMoves(dependencies, validate, board, player, coordinates):
   def getPlayerMv(toCoordinates):
-    return Move(player, board, coordinates, toCoordinates)
+    return Move(player, board, coordinates, toCoordinates, None)
 
   getMoves = fp.flow(
     lambda end: fp.Array(*getCoordinatesInBetween(coordinates, end), end),
@@ -54,7 +47,7 @@ def getPossibleMoves(dependencies, validate, board, player, coordinates):
   return PossibleMoves(*fp.Array(topLeft, topRight, bottomLeft, bottomRight).map(getMoves))
 
 @fp.curry
-def getCoordinatesWithDestroyablePawns(dependencies, validate, board, player, coordinates):
+def getPossibleMovesWithDestroyablePawns(dependencies, validate, board, player, coordinates):
   possibleMoves = getPossibleMoves(dependencies, validate, board, player, coordinates)
 
   topLeft = possibleMoves["topLeft"]
@@ -72,6 +65,56 @@ def getCoordinatesWithDestroyablePawns(dependencies, validate, board, player, co
     ))
 
   return PossibleMoves(*fp.Array(topLeft, topRight, bottomLeft, bottomRight).map(fp.filter(preceededByEnemyPawn)))
-  
 
+@fp.curry
+def pawnWasRemoved(previousBoard, board):
+  def cellHasPawn(cell):
+    return fp.prop("pawn", cell).map(fp.negate(fp.isNone))
 
+  getPawnsAmount = fp.flow(
+    fp.values,
+    fp.filter(cellHasPawn),
+    len
+  )
+
+  return getPawnsAmount(board) != getPawnsAmount(previousBoard)
+
+@fp.curry
+def determineWinner(dependencies, validate, board):
+  [firstPlayerCells, secondPlayerCells] = fp.flow(
+    fp.values,
+    fp.filter(fp.flow(fp.prop("pawn"), fp.map(fp.negate(fp.isNone)), fp.value)),
+    fp.groupBy(lambda cellWithPawn: cellWithPawn["pawn"]["owner"]["id"]),
+    fp.values
+  )(board)
+
+  def anyCellHasMoves(hasMoves, cell):
+    return hasMoves or len(getPossibleMoves(
+      dependencies, validate, board, cell["pawn"]["owner"], cell["at"]
+    )) != 0
+
+  firstPlayerHasAvailableMoves = reduce(anyCellHasMoves, firstPlayerCells, False)
+  secondPlayerHasAvailableMoves = reduce(anyCellHasMoves, secondPlayerCells, False)
+
+  if firstPlayerHasAvailableMoves and secondPlayerHasAvailableMoves:
+    return None
+
+  if firstPlayerHasAvailableMoves and not secondPlayerHasAvailableMoves:
+    return Winner(firstPlayerCells[0]["pawn"]["owner"])
+
+  if not firstPlayerHasAvailableMoves and secondPlayerHasAvailableMoves:
+    return Winner(secondPlayerCells[0]["pawn"]["owner"])
+
+  return Winner(None)
+
+@fp.curry
+def flattenPossibleMoves(possibleMoves):
+  return fp.Array(*[*possibleMoves["topLeft"], *possibleMoves["topRight"], *possibleMoves["bottomLeft"], *possibleMoves["bottomRight"]])
+
+@fp.curry
+def isSameCoord(coordA, coordB):
+  return coordA["x"] == coordB["x"] and coordA["y"] == coordB["y"]
+
+@fp.curry
+def isSameMove(moveA, moveB):
+  return isSameCoord(moveA["to"], moveB["to"]) and isSameCoord(moveA["from"], moveB["from"]) and fp.compareProp("id", moveA["player"], moveB["player"])

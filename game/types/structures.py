@@ -40,12 +40,13 @@ def Cell(coordinates, pawn):
 
 MoveTypename = "Move"
 @typeCreator(MoveTypename)
-def Move(player, board, fromCoordinates, toCoordinates):
+def Move(player, board, fromCoordinates, toCoordinates, needsToContinueMoveFrom):
   return {
     "player": player,
     "from": fromCoordinates,
     "to": toCoordinates,
     "board": board,
+    "needsToContinueMoveFrom": needsToContinueMoveFrom
   }
 
 MoveDependenciesTypename = "MoveDependencies"
@@ -59,10 +60,10 @@ def MoveDependencies(keyEncoder, keyDecoder, resultCreator):
 
 MoveResultTypename = "MoveResult"
 @typeCreator(MoveResultTypename)
-def MoveResult(board, shouldSwitchPlayers, winner):
+def MoveResult(board, needsToContinueMoveFrom, winner):
   return {
     "board": board,
-    "shouldSwitchPlayers": shouldSwitchPlayers,
+    "needsToContinueMoveFrom": needsToContinueMoveFrom,
     "winner": winner
   }
 
@@ -82,4 +83,11 @@ def PossibleMoves(topLeft, topRight, bottomLeft, bottomRight):
     "topRight": topRight,
     "bottomLeft": bottomLeft,
     "bottomRight": bottomRight,
+  }
+
+WinnerTypename = "Winner"
+@typeCreator(WinnerTypename)
+def Winner(player):
+  return {
+    "player": player
   }

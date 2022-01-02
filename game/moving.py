@@ -1,7 +1,7 @@
 import fp
 from functools import reduce
 
-from game.utils import getCoordinatesInBetween
+from game.utils import getCoordinatesInBetween, pawnWasRemoved, getPossibleMovesWithDestroyablePawns, flattenPossibleMoves
 
 @fp.curry
 def placeAt(dependencies, thing, board, coordinates):
@@ -22,18 +22,25 @@ def move(dependencies, board, coordinatesFrom, coordinatesTo):
   )
 
 @fp.curry
-def processMove(dependencies, playerMove):
-  return dependencies["resultCreator"](
-    move(
-      dependencies,
-      reduce(
-        placeAt(dependencies, None), 
-        getCoordinatesInBetween(playerMove["from"], playerMove["to"]),
-        playerMove["board"],
-      ),
-      playerMove["from"],
-      playerMove["to"],
+def processMove(dependencies, validate, playerMove):
+  updatedBoard = move(
+    dependencies,
+    reduce(
+      placeAt(dependencies, None),
+      getCoordinatesInBetween(playerMove["from"], playerMove["to"]),
+      playerMove["board"],
     ),
-    True,
+    playerMove["from"],
+    playerMove["to"],
+  )
+
+  canJumpOverMore = lambda: fp.flow(
+    flattenPossibleMoves,
+    fp.some(fp.negate(fp.isEmpty))
+  )(getPossibleMovesWithDestroyablePawns(dependencies, validate, updatedBoard, playerMove["player"], playerMove["to"]))
+
+  return dependencies["resultCreator"](
+    updatedBoard,
+    playerMove["to"] if pawnWasRemoved(playerMove["board"], updatedBoard) and canJumpOverMore() else None,
     None
   )

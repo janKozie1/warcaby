@@ -25,9 +25,9 @@ class TkinterGUI(UI):
 
     self.deps = game.MoveDependencies(game.encodeKey, game.decodeKey, game.MoveResult)
     self.validate = game.validatePlayerMove(self.deps)
-    self.processMove = game.processMove(self.deps)
+    self.processMove = game.processMove(self.deps, self.validate)
     self.error = None
-    
+
     self.__init_ui()
     self.render()
     self.window.mainloop()
@@ -44,12 +44,13 @@ class TkinterGUI(UI):
     self.playerTwo = game.Player(2, game.Directions()["up"])
 
     self.activePlayer = self.playerTwo
-    
+
   def __init_board(self, getBoard):
     self.board = getBoard(self.playerOne, self.playerTwo)
     self.board_repr = fp.mapDict(lambda _, key: StringVar(), self.board)
 
     self.selectedCell = None
+    self.needsToContinueMoveFrom = None
 
   def __init_ui(self):
     self.errorVar = StringVar(value = self.error)
@@ -61,8 +62,8 @@ class TkinterGUI(UI):
     ).grid(column = 0, row = 0, columnspan = 9)
 
     fp.forEachDict(lambda cell, key: Button(
-      self.window, 
-      textvariable = self.board_repr[key], 
+      self.window,
+      textvariable = self.board_repr[key],
       height = 5,
       width = 10,
       command = lambda c = key: self.cellClickHandler(self.board[c])
@@ -82,13 +83,13 @@ class TkinterGUI(UI):
 
       if game.isQueen(pawn):
         return "d"
-      
+
       return ""
-        
+
     def color(str):
       if game.cellHasOwner(self.playerOne, cell):
         return f"C{str}"
-      
+
       if game.cellHasOwner(self.playerTwo, cell):
         return f"B{str}"
 
@@ -109,19 +110,13 @@ class TkinterGUI(UI):
 
   def makeMove(self, otherCell):
     return fp.flow(self.validate, fp.map(self.processMove))(
-      game.Move(self.activePlayer, self.board, self.selectedCell["at"], otherCell["at"])
+      game.Move(self.activePlayer, self.board, self.selectedCell["at"], otherCell["at"], self.needsToContinueMoveFrom)
     )
 
   @withRerender
   def cellClickHandler(self, cell):
     self.error = None
 
-    # moves = game.getPossibleMoves(self.deps, self.validate, self.board, self.activePlayer,cell["at"])
-    # moves_with_enemy = game.getCoordinatesWithDestroyablePawns(self. deps, self.validate, self.board, self.activePlayer, cell["at"])
-
-    # print(fp.mapDict(lambda val, key: len(val), moves))
-    # print(fp.mapDict(lambda val, key: len(val), moves_with_enemy))
-  
     if fp.isNone(self.selectedCell):
       if not fp.isNone(cell["pawn"]):
         self.selectedCell = cell
@@ -129,12 +124,15 @@ class TkinterGUI(UI):
       self.selectedCell = None
     else:
       result = self.makeMove(cell)
-  
+
       if result.isRight():
         self.board = result.value["board"]
         self.selectedCell = None
+        self.needsToContinueMoveFrom = result.value["needsToContinueMoveFrom"]
 
-        if (result.value["shouldSwitchPlayers"]):
+        if not fp.isNone(self.needsToContinueMoveFrom):
+          self.selectedCell = self.board[self.deps["keyEncoder"](self.needsToContinueMoveFrom)]
+        else:
           self.__swap_active_oplayer()
       else:
         self.error = result.value

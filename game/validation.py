@@ -1,7 +1,7 @@
 from functools import wraps
 
 import fp
-from game.utils import getCoordinatesInBetween
+from game.utils import getCoordinatesInBetween, flattenPossibleMoves, getPossibleMovesWithDestroyablePawns, isSameMove, hasQueen, isSameCoord
 
 def moveValidator(errorMsg):
   def decorator(fn):
@@ -12,7 +12,7 @@ def moveValidator(errorMsg):
   return decorator
 
 def either(conditionA, conditionB):
-  def handleMove(move): 
+  def handleMove(move):
     resultA = conditionA(move)
 
     if resultA:
@@ -25,7 +25,7 @@ def either(conditionA, conditionB):
 
     return fp.Left(f"{resultA.value} or {resultB.value}")
   return lambda mv: mv.chain(lambda _: handleMove(mv))
-  
+
 @fp.curry
 def getCell(cell, dependencies, move):
   return fp.prop(dependencies["keyEncoder"](move[cell]), move["board"])
@@ -39,6 +39,18 @@ def getCellsInBetween(dependencies, move):
     lambda coords: fp.prop(dependencies["keyEncoder"](coords), move["board"]),
     fp.value
   )))
+
+@fp.curry
+def getAllCellsOfPlayer(owner, board):
+  return fp.flow(
+    fp.values,
+    fp.filter(fp.flow(
+      fp.prop("pawn"),
+      fp.chain(fp.prop("owner")),
+      fp.map(fp.compareProp("id", owner)),
+      fp.value
+    )),
+  )(board)
 
 @fp.curry
 def cellHasOwner(owner, cell):
@@ -61,9 +73,34 @@ def cellHasEnemyPawn(player, cell):
   )(cell)
 
 @fp.curry
+def makeJumpsOverAvailableEnemyPawn(otherValidations):
+
+  @fp.curry
+  @moveValidator("has to jump over enemy pawn if available")
+  def validationFn(dependencies, mv):
+    def mapMove(move):
+      movesJumpingOverEnemy = getAllCellsOfPlayer(move["player"], move["board"]).map(fp.flow(
+        lambda cell: getPossibleMovesWithDestroyablePawns(
+          dependencies,
+          fp.flow(fp.Right.of, otherValidations),
+          move["board"],
+          move["player"],
+          cell["at"]
+        ),
+        flattenPossibleMoves,
+      )).join()
+
+      if fp.isEmpty(movesJumpingOverEnemy):
+        return True
+
+      return fp.some(isSameMove(move),  movesJumpingOverEnemy)
+    return mv.map(mapMove)
+  return validationFn
+
+@fp.curry
 def movesBy(distance, dependencies, mv):
   return mv.map(lambda move: abs(move["from"]["x"] - move["to"]["x"]) == distance and abs(move["from"]["y"] - move["to"]["y"]) == distance)
-  
+
 @fp.curry
 @moveValidator("has to end be within the board")
 def movesWithinBoard(dependencies, mv):
@@ -108,7 +145,7 @@ def movesDiagonally(dependencies, mv):
 def doesNotJumpOverSelf(dependencies, mv):
   return mv.map(fp.flow(
     lambda move: fp.some(cellHasOwner(move["player"]), getCellsInBetween(dependencies, move)),
-    fp.flipBool   
+    fp.flipBool
   ))
 
 @fp.curry
@@ -128,6 +165,16 @@ def landsAfterEnemyPawn(dependencies, mv):
 def jumpsOverOneEnemyPawn(dependencies, mv):
   return mv.map(lambda move: len(fp.filter(cellHasEnemyPawn(move["player"]), getCellsInBetween(dependencies, move))) == 1)
 
+@fp.curry
+@moveValidator("has to not jump over any pawn")
+def doesNotJumpOverAnyPawn(dependencies, mv):
+  return mv.map(lambda move: fp.every(fp.flow(fp.prop("pawn"), fp.map(fp.isNone), fp.value), getCellsInBetween(dependencies, move)))
+
+@fp.curry
+@moveValidator("has to continue previous move")
+def continuesPreviousMove(dependencies, mv):
+  return mv.map(lambda move: fp.isNone(move["needsToContinueMoveFrom"]) or isSameCoord(move["needsToContinueMoveFrom"], move["from"]))
+
 movesByOneCell = fp.flow(
   moveValidator("has to move by one cell"),
   fp.curry
@@ -139,7 +186,7 @@ movesByTwoCells = fp.flow(
 )(movesBy(2))
 
 @fp.curry
-def validatePlayerMove(dependencies, move): 
+def sharedValidation(dependencies):
   return fp.flow(
     pawnExists(dependencies),
     userOwnsPawn(dependencies),
@@ -148,8 +195,35 @@ def validatePlayerMove(dependencies, move):
     movesToEmptySpace(dependencies),
     movesDiagonally(dependencies),
     doesNotJumpOverSelf(dependencies),
+    continuesPreviousMove(dependencies)
+  )
+
+@fp.curry
+def queenValidation(dependencies):
+  return fp.flow(
+    sharedValidation(dependencies),
+    either(
+      fp.flow(landsAfterEnemyPawn(dependencies), jumpsOverOneEnemyPawn(dependencies)),
+      doesNotJumpOverAnyPawn(dependencies)
+    )
+  )
+
+@fp.curry
+def pawnValidation(dependencies):
+  return fp.flow(
+    sharedValidation(dependencies),
     either(
       fp.flow(landsAfterEnemyPawn(dependencies), jumpsOverOneEnemyPawn(dependencies), movesByTwoCells(dependencies)),
       fp.flow(movesForward(dependencies), movesByOneCell(dependencies))
     )
+  )
+
+@fp.curry
+def validatePlayerMove(dependencies, move):
+  validate = queenValidation if hasQueen(move["board"], dependencies["keyEncoder"](move["from"])) else pawnValidation
+  jumpsOverAvailableEnemyPawn = makeJumpsOverAvailableEnemyPawn(validate(dependencies))
+
+  return fp.flow(
+    validate(dependencies),
+    jumpsOverAvailableEnemyPawn(dependencies)
   )(fp.Right.of(move))
