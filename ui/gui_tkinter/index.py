@@ -40,8 +40,8 @@ class TkinterGUI(UI):
     self.mainframe.grid(column = 0, row = 0, sticky=(N, W, E, S))
 
   def __init_players(self):
-    self.playerOne = game.Player(1, 1)
-    self.playerTwo = game.Player(2, -1)
+    self.playerOne = game.Player(1, game.Directions()["down"])
+    self.playerTwo = game.Player(2, game.Directions()["up"])
 
     self.activePlayer = self.playerTwo
     
@@ -115,6 +115,12 @@ class TkinterGUI(UI):
   @withRerender
   def cellClickHandler(self, cell):
     self.error = None
+
+    # moves = game.getPossibleMoves(self.deps, self.validate, self.board, self.activePlayer,cell["at"])
+    # moves_with_enemy = game.getCoordinatesWithDestroyablePawns(self. deps, self.validate, self.board, self.activePlayer, cell["at"])
+
+    # print(fp.mapDict(lambda val, key: len(val), moves))
+    # print(fp.mapDict(lambda val, key: len(val), moves_with_enemy))
   
     if fp.isNone(self.selectedCell):
       if not fp.isNone(cell["pawn"]):
@@ -134,7 +140,6 @@ class TkinterGUI(UI):
         self.error = result.value
 
   def render(self):
-    print("rerender", self.selectedCell)
     fp.forEachDict(
       lambda strVar, key: strVar.set(self.__cell_repr(self.board[key])
     ), self.board_repr)

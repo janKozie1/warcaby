@@ -65,3 +65,21 @@ def MoveResult(board, shouldSwitchPlayers, winner):
     "shouldSwitchPlayers": shouldSwitchPlayers,
     "winner": winner
   }
+
+DirectionsTypename = "Directions"
+@typeCreator(DirectionsTypename)
+def Directions():
+  return {
+    "down": 1,
+    "up": -1,
+  }
+
+PossibleMovesTypename = "PossibleMoves"
+@typeCreator(PossibleMovesTypename)
+def PossibleMoves(topLeft, topRight, bottomLeft, bottomRight):
+  return {
+    "topLeft": topLeft,
+    "topRight": topRight,
+    "bottomLeft": bottomLeft,
+    "bottomRight": bottomRight,
+  }
