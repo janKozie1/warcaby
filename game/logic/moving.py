@@ -1,9 +1,11 @@
 import fp
 from functools import reduce
-from game.board import getBoardHeight
+
 from game.types.structures import Directions, QueenPawn
 
-from game.utils import determineWinner, getCoordinatesInBetween, pawnWasRemoved, getPossibleMovesWithDestroyablePawns, flattenPossibleMoves
+from game.logic.board import getBoardHeight
+from game.logic.utils import determineWinner, getCoordinatesInBetween, pawnWasRemoved, getPossibleMovesWithDestroyablePawns, flattenPossibleMoves
+
 
 @fp.curry
 def placeAt(dependencies, thing, board, coordinates):

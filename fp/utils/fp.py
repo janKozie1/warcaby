@@ -49,3 +49,7 @@ def chain(fn, func):
 @curry
 def apply(funcA, funcB):
     return funcA.apply(funcB)
+
+@curry
+def call(fn):
+    return fn()

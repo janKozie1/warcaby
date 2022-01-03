@@ -6,8 +6,8 @@ def makeTypeCreator(typenameKey, typename):
   def decorator(fn):
 
     @wraps(fn)
-    def wrapper(*args):
-      return fp.merge(fn(*args), fp.setProp(typenameKey, typename, {}))
+    def wrapper(*args, __typename = None, **kwargs):
+      return fp.merge(fn(*args, **kwargs), fp.setProp(typenameKey, typename, {}))
 
     return wrapper
   return decorator

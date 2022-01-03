@@ -6,8 +6,6 @@ import fp
 from fp.utils.object import compareProp
 import game
 
-from ui.abstract import UI
-
 def withRerender(method):
   @wraps(method)
   def wrapper(self, *args):
@@ -18,20 +16,13 @@ def withRerender(method):
 
   return wrapper
 
-class TkinterGUI(UI):
-  def __init__(self, getBoard):
-    self.getBoard = getBoard
+class TkinterGUI:
+  def __init__(self, gameController):
+    self.gameController = gameController
 
     self.__init_frame()
-    self.__init_players()
-    self.__init_board()
-
-    self.deps = game.MoveDependencies(game.encodeKey, game.decodeKey, game.MoveResult)
-    self.validate = game.validatePlayerMove(self.deps)
-    self.processMove = game.processMove(self.deps, self.validate)
-    self.error = None
-
     self.__init_ui()
+
     self.render()
     self.window.mainloop()
 
@@ -42,26 +33,16 @@ class TkinterGUI(UI):
     self.mainframe = ttk.Frame(self.window)
     self.mainframe.grid(column = 0, row = 0, sticky=(N, W, E, S))
 
-  def __init_players(self):
-    self.playerOne = game.Player(1, game.Directions()["down"])
-    self.playerTwo = game.Player(2, game.Directions()["up"])
-
-    self.activePlayer = self.playerTwo
-    self.winner = None
-
-  def __init_board(self):
-    self.board = self.getBoard(self.playerOne, self.playerTwo)
-    self.board_repr = fp.mapDict(lambda _, __: StringVar(), self.board)
-
-    self.selectedCell = None
-    self.needsToContinueMoveFrom = None
-
   def __init_ui(self):
-    self.errorVar = StringVar(value = self.error)
-    self.playerVar = StringVar(value = self.__player_repr(self.activePlayer))
+    state = self.gameController.get_state()
 
-    boardWidth = game.getBoardWidth(self.board)
-    boardHeight = game.getBoardHeight(self.board)
+    self.errorVar = StringVar(value = state["error"])
+    self.playerVar = StringVar(value = self.__player_repr(state["activePlayer"]))
+
+    boardWidth = game.getBoardWidth(state["board"])
+    boardHeight = game.getBoardHeight(state["board"])
+
+    self.board_repr = fp.mapDict(lambda _, __: StringVar(), state["board"])
 
     Label(
       self.window,
@@ -73,8 +54,8 @@ class TkinterGUI(UI):
       textvariable = self.board_repr[key],
       height = 5,
       width = 10,
-      command = lambda c = key: self.cellClickHandler(self.board[c])
-    ).grid(column = cell["at"]["x"], row = cell["at"]["y"] + 1), self.board)
+      command = lambda c = key: self.cellClickHandler(self.gameController.get_state()["board"][c])
+    ).grid(column = cell["at"]["x"], row = cell["at"]["y"] + 1), state["board"])
 
     Label(
       self.window,
@@ -94,6 +75,8 @@ class TkinterGUI(UI):
     ).grid(column = 0, row = boardHeight + 4, columnspan = boardWidth)
 
   def __cell_repr(self, cell):
+    selectedCell = self.gameController.get_state()["selectedCell"]
+
     def pawn(str):
       pawn = cell["pawn"]
 
@@ -114,91 +97,53 @@ class TkinterGUI(UI):
       return f"{self.__player_repr(pawn['owner'])}{str}"
 
     def selection(str):
-      if cell == self.selectedCell:
+      if fp.isNone(selectedCell):
+        return str
+
+      if game.isSameCoord(cell["at"], selectedCell["at"]):
         return f"[{str}]"
       return str
 
     return fp.flow(pawn, color, selection)("")
 
   def __player_repr(self, player):
-    if compareProp("id", player, self.playerOne):
+    players = self.gameController.get_players()
+
+    if compareProp("id", player, players["playerOne"]):
       return "C"
 
-    if compareProp("id", player, self.playerTwo):
+    if compareProp("id", player, players["playerTwo"]):
       return "B"
 
     return None
 
-  def __swap_active_oplayer(self):
-    self.activePlayer = self.playerOne if self.activePlayer == self.playerTwo else self.playerTwo
-
-  def __get_winner_text(self):
-    if fp.isNone(self.winner):
+  def __get_winner_text(self, winner):
+    if fp.isNone(winner):
       return None
 
-    if fp.isNone(self.winner["player"]):
+    if fp.isNone(winner["player"]):
       return "Game end: Draw"
     else:
-      return f"Game end: player {self.__player_repr(self.winner['player'])} won"
-
-  def __snapshot(self):
-    print(self.board)
-
-  def makeMove(self, otherCell):
-    return fp.flow(self.validate, fp.map(self.processMove))(
-      game.Move(self.activePlayer, self.board, self.selectedCell["at"], otherCell["at"], self.needsToContinueMoveFrom)
-    )
+      return f"Game end: player {self.__player_repr(winner['player'])} won"
 
   @withRerender
   def resetButtonClickHandler(self):
-    self.activePlayer = self.playerTwo
-    self.winner = None
-
-    self.board = self.getBoard(self.playerOne, self.playerTwo)
-
-    self.selectedCell = None
-    self.needsToContinueMoveFrom = None
-    self.error = None
+    self.gameController.reset()
 
   @withRerender
   def cellClickHandler(self, cell):
-    self.error = None
-
-    if not fp.isNone(self.winner):
-      return
-
-    if fp.isNone(self.selectedCell):
-      if not fp.isNone(cell["pawn"]):
-        self.selectedCell = cell
-    elif cell == self.selectedCell:
-      self.selectedCell = None
-    else:
-      result = self.makeMove(cell)
-
-      if result.isRight():
-        self.board = result.value["board"]
-        self.winner = result.value["winner"]
-        self.selectedCell = None
-        self.needsToContinueMoveFrom = result.value["needsToContinueMoveFrom"]
-
-        if not fp.isNone(self.winner):
-          messagebox.showinfo(title = "Game end", message = self.__get_winner_text())
-
-        if not fp.isNone(self.needsToContinueMoveFrom):
-          self.selectedCell = self.board[self.deps["keyEncoder"](self.needsToContinueMoveFrom)]
-        else:
-          self.__swap_active_oplayer()
-      else:
-        self.error = result.value
+    self.gameController.select_cell(cell)
 
   def render(self):
+    state = self.gameController.get_state()
+
     fp.forEachDict(
-      lambda strVar, key: strVar.set(self.__cell_repr(self.board[key])
+      lambda strVar, key: strVar.set(self.__cell_repr(state['board'][key])
     ), self.board_repr)
 
-    self.errorVar.set("" if fp.isNone(self.error) else f"Invalid move: {self.error}")
+    self.errorVar.set("" if fp.isNone(state["error"]) else f"Invalid move: {state['error']}")
 
-    if fp.isNone(self.winner):
-      self.playerVar.set(f"Player's turn: {self.__player_repr(self.activePlayer)}")
+    if fp.isNone(state["winner"]):
+      self.playerVar.set(f"Player's turn: {self.__player_repr(state['activePlayer'])}")
     else:
-      self.playerVar.set(self.__get_winner_text())
+      self.playerVar.set(self.__get_winner_text(state['winner']))

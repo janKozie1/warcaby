@@ -1,8 +1,10 @@
 from functools import reduce
 
 import fp
+
 from game.types import Coordinates, PossibleMoves, Move, Winner, QueenPawnTypename, PawnTypename, isTypeOf
-from game.board import getBoardWidth, getBoardHeight
+
+from game.logic.board import getBoardWidth, getBoardHeight
 
 isQueen = isTypeOf(QueenPawnTypename)
 isPawn = isTypeOf(PawnTypename)
@@ -103,11 +105,9 @@ def determineWinner(dependencies, validate, board):
     return None
 
   if firstPlayerHasAvailableMoves and not secondPlayerHasAvailableMoves:
-    print(firstPlayerCells[0]["pawn"]["owner"])
     return Winner(firstPlayerCells[0]["pawn"]["owner"])
 
   if not firstPlayerHasAvailableMoves and secondPlayerHasAvailableMoves:
-    print(secondPlayerCells[0]["pawn"]["owner"])
     return Winner(secondPlayerCells[0]["pawn"]["owner"])
 
   return Winner(None)

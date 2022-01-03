@@ -44,7 +44,7 @@ def find(predicate, array):
   for el in array:
     if predicate(el):
       return Maybe.of(el)
-  
+
   return Maybe.of(None)
 
 @curry
@@ -55,11 +55,11 @@ def filter(predicate, array):
 def groupBy(predicate, array):
   def reducer(groups, el):
     dictKey = predicate(el)
-    
+
     return setProp(
       dictKey,
       value(prop(dictKey, groups).map(append(el))) if has(dictKey, groups) else Array(el),
-      groups 
+      groups
     )
 
   return reduce(reducer, array, {})

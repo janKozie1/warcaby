@@ -1,7 +1,8 @@
-from functools import wraps
+from functools import wraps, reduce
 
 import fp
-from game.utils import getCoordinatesInBetween, flattenPossibleMoves, getPossibleMovesWithDestroyablePawns, isSameMove, hasQueen, isSameCoord
+
+from game.logic.utils import getCoordinatesInBetween, flattenPossibleMoves, getPossibleMovesWithDestroyablePawns, isSameMove, hasQueen, isSameCoord
 
 def moveValidator(errorMsg):
   def decorator(fn):
@@ -80,20 +81,28 @@ def makeJumpsOverAvailableEnemyPawn(otherValidations):
   def validationFn(dependencies, mv):
     def mapMove(move):
       movesJumpingOverEnemy = getAllCellsOfPlayer(move["player"], move["board"]).map(fp.flow(
-        lambda cell: getPossibleMovesWithDestroyablePawns(
+        lambda cell: lambda: flattenPossibleMoves(getPossibleMovesWithDestroyablePawns(
           dependencies,
           fp.flow(fp.Right.of, otherValidations),
           move["board"],
           move["player"],
           cell["at"]
-        ),
-        flattenPossibleMoves,
-      )).join()
+        )),
+      ))
 
       if fp.isEmpty(movesJumpingOverEnemy):
         return True
 
-      return fp.some(isSameMove(move),  movesJumpingOverEnemy)
+      def parseResult(matchedAnyOther, currentMoves):
+        if matchedAnyOther == True:
+          return True
+
+        moves = currentMoves()
+        if fp.isEmpty(moves):
+          return matchedAnyOther
+        return fp.some(isSameMove(move), moves)
+
+      return fp.flow(lambda result: result or fp.isNone(result))(reduce(parseResult, movesJumpingOverEnemy, None))
     return mv.map(mapMove)
   return validationFn
 

@@ -1,7 +1,8 @@
 from functools import reduce
 
 import fp
-from game.types import Coordinates, Cell, Pawn, QueenPawn
+from game.types import Coordinates, Cell, Pawn
+
 @fp.curry
 def keyEncoder(separator, coordinates):
   return f"{coordinates['x']}{separator}{coordinates['y']}"
@@ -12,7 +13,6 @@ def keyDecoder(separator, key):
 
 encodeKey = keyEncoder("-")
 decodeKey = keyDecoder("-")
-
 
 @fp.curry
 def createBoard(width, height, mapping_fn):

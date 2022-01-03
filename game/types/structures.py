@@ -1,5 +1,3 @@
-import fp
-
 from game.types.utils import typeCreator
 
 PlayerTypename = "Player"
@@ -90,4 +88,24 @@ WinnerTypename = "Winner"
 def Winner(player):
   return {
     "player": player
+  }
+
+GameStateTypename = "GameState"
+@typeCreator(GameStateTypename)
+def GameState(activePlayer, winner, board, selectedCell, needsToContinueMoveFrom, error):
+  return {
+    "activePlayer":activePlayer,
+    "winner": winner,
+    "board": board,
+    "selectedCell": selectedCell,
+    "needsToContinueMoveFrom": needsToContinueMoveFrom,
+    "error": error,
+  }
+
+PlayersTypename = "Players"
+@typeCreator(PlayersTypename)
+def Players(playerOne, playerTwo):
+  return {
+    "playerOne": playerOne,
+    "playerTwo": playerTwo
   }
