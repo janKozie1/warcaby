@@ -4,21 +4,21 @@ import fp
 import game
 
 class GameController:
-  def __init__(self, getBoard):
-    self.getBoard = getBoard
+  def __init__(self, validateMove, processMove, dependencies, getBoard):
+    self.__getBoard = getBoard
 
-    self.deps = game.MoveDependencies(game.encodeKey, game.decodeKey, game.MoveResult)
-    self.validate = game.validatePlayerMove(self.deps)
-    self.processMove = game.processMove(self.deps, self.validate)
-    self.playerOne = game.Player(1, game.Directions()["down"])
-    self.playerTwo = game.Player(2, game.Directions()["up"])
+    self.__deps = dependencies
+    self.__validate = validateMove(self.__deps)
+    self.__processMove = processMove(self.__deps, self.__validate)
+    self.__playerOne = game.Player(1, game.Directions()["down"])
+    self.__playerTwo = game.Player(2, game.Directions()["up"])
 
-    self.state = self.__get_initial_state()
+    self.__state = self.__get_initial_state()
 
   def __get_initial_state(self):
     return game.GameState(
-      activePlayer = self.playerTwo,
-      board = self.getBoard(self.playerOne, self.playerTwo),
+      activePlayer = self.__playerTwo,
+      board = self.__getBoard(self.__playerOne, self.__playerTwo),
       winner = None,
       selectedCell = None,
       needsToContinueMoveFrom = None,
@@ -26,38 +26,38 @@ class GameController:
     )
 
   def __set_state(self, newState):
-    self.state = game.GameState(**fp.merge(self.state, newState))
+    self.__state = game.GameState(**fp.merge(self.__state, newState))
 
   def reset(self):
     self.__set_state(self.__get_initial_state())
 
   def __get_idle_player(self):
-    return self.playerOne if self.state["activePlayer"] == self.playerTwo else self.playerTwo
+    return self.__playerOne if self.__state["activePlayer"] == self.__playerTwo else self.__playerTwo
 
   def __make_move(self, otherCell):
-    state = self.state
-    return fp.flow(self.validate, fp.map(self.processMove))(
+    state = self.__state
+    return fp.flow(self.__validate, fp.map(self.__processMove))(
       game.Move(state["activePlayer"], state["board"], state["selectedCell"]["at"], otherCell["at"], state["needsToContinueMoveFrom"])
     )
 
   def get_players(self):
-    return game.Players(self.playerOne, self.playerTwo)
+    return game.Players(self.__playerOne, self.__playerTwo)
 
   def get_state(self):
-    return self.state
+    return self.__state
 
   def select_cell(self, cell):
     self.__set_state({"error": None})
 
-    if not fp.isNone(self.state["winner"]):
+    if not fp.isNone(self.__state["winner"]):
       return
 
-    if fp.isNone(self.state["selectedCell"]):
+    if fp.isNone(self.__state["selectedCell"]):
       if not fp.isNone(cell["pawn"]):
         return self.__set_state({"selectedCell": cell})
       return
 
-    if game.isSameCoord(cell["at"], self.state["selectedCell"]["at"]):
+    if game.isSameCoord(cell["at"], self.__state["selectedCell"]["at"]):
       return self.__set_state({"selectedCell": None})
 
     result = self.__make_move(cell)
@@ -71,8 +71,24 @@ class GameController:
       "board": value["board"],
       "winner": value["winner"],
       "needsToContinueMoveFrom": needsToContinueMoveFrom,
-      "selectedCell": value["board"][self.deps["keyEncoder"](needsToContinueMoveFrom)] if not fp.isNone(
+      "selectedCell": value["board"][self.__deps["keyEncoder"](needsToContinueMoveFrom)] if not fp.isNone(
         needsToContinueMoveFrom
       ) else None,
-      "activePlayer": self.__get_idle_player() if fp.isNone(needsToContinueMoveFrom) else self.state["activePlayer"]
+      "activePlayer": self.__get_idle_player() if fp.isNone(needsToContinueMoveFrom) else self.__state["activePlayer"]
     })
+
+
+createDefaultGameConroller = lambda: game.GameController(
+  game.validatePlayerMove,
+  game.processMove,
+  game.MoveDependencies(game.encodeKey, game.decodeKey, game.MoveResult),
+  lambda playerOne, playerTwo: game.make8x8Board(
+    game.englishBoardPlacementRules(playerOne, playerTwo)
+  ))
+
+createDefaultGameConrollerFromSnapshot = lambda snapshot: game.GameController(
+  game.validatePlayerMove,
+  game.processMove,
+  game.MoveDependencies(game.encodeKey, game.decodeKey, game.MoveResult),
+  fp.wrap(snapshot)
+)

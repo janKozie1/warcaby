@@ -147,3 +147,6 @@ class TkinterGUI:
       self.playerVar.set(f"Player's turn: {self.__player_repr(state['activePlayer'])}")
     else:
       self.playerVar.set(self.__get_winner_text(state['winner']))
+
+    # print(state["board"])
+    # print("---------------------------------")

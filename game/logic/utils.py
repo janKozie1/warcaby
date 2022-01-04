@@ -94,9 +94,9 @@ def determineWinner(dependencies, validate, board):
   secondPlayerCells = fp.value(fp.second(cellGroups)) or []
 
   def anyCellHasMoves(hasMoves, cell):
-    return hasMoves or len(getPossibleMoves(
+    return hasMoves or len(flattenPossibleMoves(getPossibleMoves(
       dependencies, validate, board, cell["pawn"]["owner"], cell["at"]
-    )) != 0
+    ))) != 0
 
   firstPlayerHasAvailableMoves = reduce(anyCellHasMoves, firstPlayerCells, False)
   secondPlayerHasAvailableMoves = reduce(anyCellHasMoves, secondPlayerCells, False)
