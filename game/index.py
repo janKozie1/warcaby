@@ -27,9 +27,10 @@ class GameController:
 
   def __set_state(self, newState):
     self.__state = game.GameState(**fp.merge(self.__state, newState))
+    return self.__state
 
   def reset(self):
-    self.__set_state(self.__get_initial_state())
+    return self.__set_state(self.__get_initial_state())
 
   def __get_idle_player(self):
     return self.__playerOne if self.__state["activePlayer"] == self.__playerTwo else self.__playerTwo
@@ -50,12 +51,12 @@ class GameController:
     self.__set_state({"error": None})
 
     if not fp.isNone(self.__state["winner"]):
-      return
+      return self.__set_state({})
 
     if fp.isNone(self.__state["selectedCell"]):
       if not fp.isNone(cell["pawn"]):
         return self.__set_state({"selectedCell": cell})
-      return
+      return self.__set_state({})
 
     if game.isSameCoord(cell["at"], self.__state["selectedCell"]["at"]):
       return self.__set_state({"selectedCell": None})

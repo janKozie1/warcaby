@@ -10,4 +10,3 @@ class Array(list):
 
   def join(self):
     return Array(*[item for sublist in self for item in sublist])
-

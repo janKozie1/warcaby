@@ -132,7 +132,15 @@ class TkinterGUI:
 
   @withRerender
   def cellClickHandler(self, cell):
-    self.gameController.select_cell(cell)
+    prevState = self.gameController.get_state()
+    state = self.gameController.select_cell(cell)
+
+    if fp.isNone(prevState["winner"]) and not fp.isNone(state["winner"]):
+      messagebox.showinfo(title = "Game end", message = self.__get_winner_text(state["winner"]))
+
+    if not fp.isNone(state["error"]):
+      messagebox.showerror(title = "Invalid move", message = state["error"])
+
 
   def render(self):
     state = self.gameController.get_state()
@@ -147,6 +155,3 @@ class TkinterGUI:
       self.playerVar.set(f"Player's turn: {self.__player_repr(state['activePlayer'])}")
     else:
       self.playerVar.set(self.__get_winner_text(state['winner']))
-
-    # print(state["board"])
-    # print("---------------------------------")

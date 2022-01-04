@@ -27,7 +27,7 @@ def setProp(prop, value, dictA):
 def values(dictA):
   return Array(*dictA.values())
 
-@curry 
+@curry
 def keys(dictA):
   return Array(*dictA.keys())
 
@@ -47,7 +47,7 @@ def mapDict(mappingFn, dictA):
   )(dictA)
 
 @curry
-def forEachDict(fn, dictA): 
+def forEachDict(fn, dictA):
   return flow(
     keys,
     forEach(lambda key: fn(value(prop(key, dictA)), key))
