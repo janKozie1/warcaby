@@ -54,7 +54,7 @@ def processMove(dependencies, validate, playerMove):
 
   needsToContinueMove = pawnWasRemoved(playerMove["board"], updatedBoard) and fp.flow(
     flattenPossibleMoves,
-    fp.some(fp.negate(fp.isEmpty))
+    fp.some(fp.flow(fp.call, fp.negate(fp.isEmpty)))
   )(getPossibleMovesWithDestroyablePawns(dependencies, validate, updatedBoard, playerMove["player"], playerMove["to"]))
 
   boardWithQueens = turnIntoQueen(dependencies, playerMove, updatedBoard) if not needsToContinueMove and shouldTurnIntoQueen(playerMove, updatedBoard) else updatedBoard

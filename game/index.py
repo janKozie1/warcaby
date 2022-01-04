@@ -4,12 +4,12 @@ import fp
 import game
 
 class GameController:
-  def __init__(self, validateMove, processMove, dependencies, getBoard):
+  def __init__(self, validateMove, validatePossibleMove, processMove, dependencies, getBoard):
     self.__getBoard = getBoard
 
     self.__deps = dependencies
     self.__validate = validateMove(self.__deps)
-    self.__processMove = processMove(self.__deps, self.__validate)
+    self.__processMove = processMove(self.__deps, validatePossibleMove(self.__deps))
     self.__playerOne = game.Player(1, game.Directions()["down"])
     self.__playerTwo = game.Player(2, game.Directions()["up"])
 
@@ -80,6 +80,7 @@ class GameController:
 
 createDefaultGameConroller = lambda: game.GameController(
   game.validatePlayerMove,
+  game.validatePossiblePlayerMove,
   game.processMove,
   game.MoveDependencies(game.encodeKey, game.decodeKey, game.MoveResult),
   lambda playerOne, playerTwo: game.make8x8Board(
@@ -88,6 +89,7 @@ createDefaultGameConroller = lambda: game.GameController(
 
 createDefaultGameConrollerFromSnapshot = lambda snapshot: game.GameController(
   game.validatePlayerMove,
+  game.validatePossiblePlayerMove,
   game.processMove,
   game.MoveDependencies(game.encodeKey, game.decodeKey, game.MoveResult),
   fp.wrap(snapshot)

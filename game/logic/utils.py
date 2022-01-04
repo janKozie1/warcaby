@@ -46,17 +46,10 @@ def getPossibleMoves(dependencies, validate, board, player, coordinates):
   bottomLeft = Coordinates(coordinates["x"] - maxXDistance, coordinates["y"] + maxYDistance)
   bottomRight = Coordinates(coordinates["x"] + maxXDistance, coordinates["y"] + maxYDistance)
 
-  return PossibleMoves(*fp.Array(topLeft, topRight, bottomLeft, bottomRight).map(getMoves))
+  return PossibleMoves(*fp.Array(topLeft, topRight, bottomLeft, bottomRight).map(lambda corner: lambda: getMoves(corner)))
 
 @fp.curry
 def getPossibleMovesWithDestroyablePawns(dependencies, validate, board, player, coordinates):
-  possibleMoves = getPossibleMoves(dependencies, validate, board, player, coordinates)
-
-  topLeft = possibleMoves["topLeft"]
-  topRight = possibleMoves["topRight"]
-  bottomLeft = possibleMoves["bottomLeft"]
-  bottomRight = possibleMoves["bottomRight"]
-
   def preceededByEnemyPawn(move):
     return fp.last(getCoordinatesInBetween(move["from"], move["to"])).map(fp.flow(
       dependencies["keyEncoder"],
@@ -66,7 +59,9 @@ def getPossibleMovesWithDestroyablePawns(dependencies, validate, board, player, 
       fp.value
     ))
 
-  return PossibleMoves(*fp.Array(topLeft, topRight, bottomLeft, bottomRight).map(fp.filter(preceededByEnemyPawn)))
+  return PossibleMoves(*flattenPossibleMoves(
+    getPossibleMoves(dependencies, validate, board, player, coordinates)
+  ).map(lambda getter: lambda: fp.filter(preceededByEnemyPawn, getter())))
 
 @fp.curry
 def pawnWasRemoved(previousBoard, board):
@@ -90,13 +85,13 @@ def determineWinner(dependencies, validate, board):
     fp.values
   )(board)
 
-  firstPlayerCells = fp.value(fp.head(cellGroups)) or []
+  firstPlayerCells = fp.reverse(fp.value(fp.head(cellGroups)) or [])
   secondPlayerCells = fp.value(fp.second(cellGroups)) or []
 
   def anyCellHasMoves(hasMoves, cell):
-    return hasMoves or len(flattenPossibleMoves(getPossibleMoves(
+    return hasMoves or fp.some(fp.flow(fp.call, fp.negate(fp.isEmpty)), flattenPossibleMoves(getPossibleMoves(
       dependencies, validate, board, cell["pawn"]["owner"], cell["at"]
-    ))) != 0
+    )))
 
   firstPlayerHasAvailableMoves = reduce(anyCellHasMoves, firstPlayerCells, False)
   secondPlayerHasAvailableMoves = reduce(anyCellHasMoves, secondPlayerCells, False)
@@ -114,7 +109,7 @@ def determineWinner(dependencies, validate, board):
 
 @fp.curry
 def flattenPossibleMoves(possibleMoves):
-  return fp.Array(*[*possibleMoves["topLeft"], *possibleMoves["topRight"], *possibleMoves["bottomLeft"], *possibleMoves["bottomRight"]])
+  return fp.Array(*[possibleMoves["topLeft"], possibleMoves["topRight"], possibleMoves["bottomLeft"], possibleMoves["bottomRight"]])
 
 @fp.curry
 def isSameCoord(coordA, coordB):

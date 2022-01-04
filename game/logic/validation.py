@@ -80,8 +80,10 @@ def makeJumpsOverAvailableEnemyPawn(otherValidations):
   @moveValidator("has to jump over enemy pawn if available")
   def validationFn(dependencies, mv):
     def mapMove(move):
-      movesJumpingOverEnemy = getAllCellsOfPlayer(move["player"], move["board"]).map(fp.flow(
-        lambda cell: lambda: flattenPossibleMoves(getPossibleMovesWithDestroyablePawns(
+      cells = getAllCellsOfPlayer(move["player"], move["board"])
+
+      movesJumpingOverEnemy = (cells if move["player"]["direction"] == 1 else fp.reverse(cells)).map(fp.flow(
+        lambda cell: flattenPossibleMoves(getPossibleMovesWithDestroyablePawns(
           dependencies,
           fp.flow(fp.Right.of, otherValidations),
           move["board"],
@@ -97,12 +99,15 @@ def makeJumpsOverAvailableEnemyPawn(otherValidations):
         if matchedAnyOther == True:
           return True
 
-        moves = currentMoves()
+        moves = currentMoves.map(fp.call).join()
         if fp.isEmpty(moves):
           return matchedAnyOther
         return fp.some(isSameMove(move), moves)
 
-      return fp.flow(lambda result: result or fp.isNone(result))(reduce(parseResult, movesJumpingOverEnemy, None))
+      return fp.flow(lambda result: result or fp.isNone(result))(
+        reduce(parseResult, movesJumpingOverEnemy, None)
+      )
+
     return mv.map(mapMove)
   return validationFn
 
@@ -184,6 +189,11 @@ def doesNotJumpOverAnyPawn(dependencies, mv):
 def continuesPreviousMove(dependencies, mv):
   return mv.map(lambda move: fp.isNone(move["needsToContinueMoveFrom"]) or isSameCoord(move["needsToContinueMoveFrom"], move["from"]))
 
+@fp.curry
+@moveValidator("has to exist")
+def emptyValidation(dependencies, mv):
+  return mv.map(fp.wrap(True))
+
 movesByOneCell = fp.flow(
   moveValidator("has to move by one cell"),
   fp.curry
@@ -197,9 +207,9 @@ movesByTwoCells = fp.flow(
 @fp.curry
 def sharedValidation(dependencies):
   return fp.flow(
+    movesWithinBoard(dependencies),
     pawnExists(dependencies),
     userOwnsPawn(dependencies),
-    movesWithinBoard(dependencies),
     movesToOtherCell(dependencies),
     movesToEmptySpace(dependencies),
     movesDiagonally(dependencies),
@@ -244,3 +254,7 @@ def validatePlayerMove(dependencies, move):
     validate(dependencies),
     jumpsOverAvailableEnemyPawn(dependencies),
   )(fp.Right.of(move))
+
+@fp.curry
+def validatePossiblePlayerMove(dependencies, move):
+  return validate(dependencies, fp.Right.of(move))

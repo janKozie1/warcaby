@@ -78,3 +78,7 @@ def some(predicate, array):
 @curry
 def every(predicate, array):
   return len(filter(predicate, array)) == len(array)
+
+@curry
+def reverse(array):
+  return Array(*array[::-1])
