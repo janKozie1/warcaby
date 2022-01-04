@@ -1,4 +1,4 @@
-from inspect import getargspec
+from inspect import getfullargspec
 from functools import reduce, wraps
 
 def flow(*fns):
@@ -16,7 +16,7 @@ def join(func):
 def wrap(val):
     return lambda *args: val
 
-args_len = flow(getargspec, lambda spec: spec[0], len)
+args_len = flow(getfullargspec, lambda spec: spec[0], len)
 
 def curry(fn, args = ()):
     applied_args = args

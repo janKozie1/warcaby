@@ -285,5 +285,31 @@ class TestGameController(unittest.TestCase):
     controller.reset()
     self.assertDictEqual(prevState, controller.get_state())
 
+  def test_requiresJumpToBeMade(self):
+    controller = game.createDefaultGameConrollerFromSnapshot(snapshots.single_jump_possible)
+    state = lambda key: controller.get_state()[key]
+    players = controller.get_players()
+
+    board = lambda: state("board")
+    prevBoard = board()
+
+    self.assertDictEqual(state("activePlayer"), players["playerTwo"])
+
+    cellP2_Start1 = lambda: state("board")["3-4"]
+    cellP2_InvalidMove1 = lambda: state("board")["2-3"]
+    cellP2_Move1 = lambda: state("board")["5-2"]
+
+    prevBoard = board()
+    controller.select_cell(cellP2_Start1())
+    controller.select_cell(cellP2_InvalidMove1())
+    self.assertDictEqual(state("activePlayer"), players["playerTwo"])
+    self.assertEqual(state("error"), "has to jump over enemy pawn if available")
+    self.assertFalse(game.pawnWasRemoved(board(), prevBoard))
+
+    controller.select_cell(cellP2_Move1())
+    self.assertDictEqual(state("activePlayer"), players["playerOne"])
+    self.assertEqual(state("error"), None)
+    self.assertTrue(game.pawnWasRemoved(board(), prevBoard))
+
 if __name__ == '__main__':
     unittest.main()
