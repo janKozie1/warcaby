@@ -10,10 +10,12 @@ isQueen = isTypeOf(QueenPawnTypename)
 isPawn = isTypeOf(PawnTypename)
 
 def determineDirection(numberA, numberB):
+  """determines if number should grow or lessen, to generate coordinates in order"""
   return -1 if numberA > numberB else 1
 
 @fp.curry
 def getCoordinatesInBetween(fromCoords, toCoords):
+  """gets coodinates between two coordinates in order as if pawn was moving from start to end"""
   def createCoords(offset):
     xDir = determineDirection(fromCoords["x"], toCoords["x"])
     yDir = determineDirection(fromCoords["y"], toCoords["y"])
@@ -25,10 +27,12 @@ def getCoordinatesInBetween(fromCoords, toCoords):
 
 @fp.curry
 def hasQueen(board, coordinates):
+  """generates every possible move for player from given coordinates, then filters the valid ones"""
   return fp.value(fp.prop(coordinates, board).chain(fp.prop("pawn")).map(isQueen))
 
 @fp.curry
 def getPossibleMoves(dependencies, validate, board, player, coordinates):
+  """generates every possible move for player from given coordinates, then filters the valid ones"""
   def getPlayerMv(toCoordinates):
     return Move(player, board, coordinates, toCoordinates, None)
 
@@ -50,6 +54,7 @@ def getPossibleMoves(dependencies, validate, board, player, coordinates):
 
 @fp.curry
 def getPossibleMovesWithDestroyablePawns(dependencies, validate, board, player, coordinates):
+  """filters possible moves to only include the ones that remove a pawn"""
   def preceededByEnemyPawn(move):
     return fp.last(getCoordinatesInBetween(move["from"], move["to"])).map(fp.flow(
       dependencies["keyEncoder"],
@@ -65,6 +70,7 @@ def getPossibleMovesWithDestroyablePawns(dependencies, validate, board, player, 
 
 @fp.curry
 def pawnWasRemoved(previousBoard, board):
+  """checks if any pawn was removed between different board states"""
   def cellHasPawn(cell):
     return fp.prop("pawn", cell).map(fp.negate(fp.isNone))
 
@@ -78,6 +84,7 @@ def pawnWasRemoved(previousBoard, board):
 
 @fp.curry
 def determineWinner(dependencies, validate, board):
+  """checks if someone won by checking how many moves they have available"""
   cellGroups = fp.flow(
     fp.values,
     fp.filter(fp.flow(fp.prop("pawn"), fp.map(fp.negate(fp.isNone)), fp.value)),

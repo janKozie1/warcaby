@@ -26,6 +26,7 @@ class GameController:
     )
 
   def _set_state(self, newState):
+    """state setter, merges old and partial update to create new state"""
     self._state = game.GameState(**fp.merge(self._state, newState))
     return self._state
 
@@ -33,9 +34,12 @@ class GameController:
     return self._set_state(self._get_initial_state())
 
   def _get_idle_player(self):
+    """determines which player is not active, so that they can be switched"""
     return self._playerOne if self._state["activePlayer"] == self._playerTwo else self._playerTwo
 
   def _make_move(self, otherCell):
+    """composes validation and board transformation to move a pawn"""
+
     state = self._state
     return fp.flow(self._validate, fp.map(self._processMove))(
       game.Move(state["activePlayer"], state["board"], state["selectedCell"]["at"], otherCell["at"], state["needsToContinueMoveFrom"])
@@ -48,6 +52,7 @@ class GameController:
     return self._state
 
   def select_cell(self, cell):
+    """determines when to make a move, handles cell selection and deselection"""
     self._set_state({"error": None})
 
     if not fp.isNone(self._state["winner"]):
