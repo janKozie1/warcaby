@@ -189,11 +189,6 @@ def doesNotJumpOverAnyPawn(dependencies, mv):
 def continuesPreviousMove(dependencies, mv):
   return mv.map(lambda move: fp.isNone(move["needsToContinueMoveFrom"]) or isSameCoord(move["needsToContinueMoveFrom"], move["from"]))
 
-@fp.curry
-@moveValidator("has to exist")
-def emptyValidation(dependencies, mv):
-  return mv.map(fp.wrap(True))
-
 movesByOneCell = fp.flow(
   moveValidator("has to move by one cell"),
   fp.curry

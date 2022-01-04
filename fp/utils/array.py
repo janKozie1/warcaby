@@ -3,7 +3,7 @@ from functools import reduce
 from fp.functors import Maybe, Array
 
 from fp.utils.fp import flow, curry, value
-from fp.utils.math import eq
+from fp.utils.boolean import eq
 from fp.utils.object import setProp, prop, has
 
 isEmpty = flow(len, eq(0))
