@@ -182,7 +182,7 @@ def jumpsOverOneEnemyPawn(dependencies, mv):
 @fp.curry
 @moveValidator("has to not jump over any pawn")
 def doesNotJumpOverAnyPawn(dependencies, mv):
-  return mv.map(lambda move: fp.every(fp.flow(fp.prop("pawn"), fp.map(fp.isNone), fp.value), getCellsInBetween(dependencies, move)))
+  return mv.map(lambda move: fp.every(fp.flow(fp.prop("pawn"), fp.value, fp.isNone), getCellsInBetween(dependencies, move)))
 
 @fp.curry
 @moveValidator("has to continue previous move")
